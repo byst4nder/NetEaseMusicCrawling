@@ -10,6 +10,10 @@ import random
 # db = client.test
 # mongo_collection = db.netease
 
+
+forth_param = "0CoJUm6Qyw8W8jud"
+second_key = 16 * 'F'
+
 headers = {
     'Host': 'music.163.com',
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36',
@@ -24,17 +28,18 @@ def search_keyword(keyword):
     url = "http://music.163.com/api/search/get/web"
 
     query = {
-        "type" : 1,
-        "s" : keyword,
-        "limit" : 1,
+        "type": 1,
+        "s": keyword,
+        "limit": 1,
     }
     try:
-        res = requests.get(url , headers=headers,params=query).json()
+        res = requests.get(url, headers=headers, params=query).json()
         result = res['result']['songs'][0]['id']
         song_id = str(result)
         return song_id
     except:
         raise
+
 
 def aesEncrypt(text, Key):
     pad = 16 - len(text) % 16
@@ -51,12 +56,8 @@ def get_encSecKey():
     return encSecKey
 
 
-def details(song_id):
-    url = "http://music.163.com/weapi/v1/resource/comments/R_SO_4_"+song_id+"/?csrf_token="
-
-    forth_param = "0CoJUm6Qyw8W8jud"
-    second_key = 16 * 'F'
-
+def getRTComments(song_id):
+    url = "http://music.163.com/weapi/v1/resource/comments/R_SO_4_" + song_id + "/?csrf_token="
     try:
         for i in range(0, 1):
             if i == 0:
@@ -68,14 +69,9 @@ def details(song_id):
                 "encSecKey": get_encSecKey()
             }
             res = requests.post(url, headers=headers, data=data).json()
-
             c_list = []
             for j in range(0, 20):
                 data = res['comments'][j]
-                # comment = res['comments'][j]['content']
-                # user_avatar = res['comments'][j]['user']['avatarUrl']
-                # user_nickname = res['comments'][j]['user']['nickname']
-                # data = {"comment": comment, "id": user_nickname, "avatar": user_avatar}
                 c_list.append(data)
             # try:
             #     mongo_collection.insert_many(c_list)
@@ -86,3 +82,33 @@ def details(song_id):
     except:
         raise
 
+def getHotComments(song_id):
+        url = "http://music.163.com/weapi/v1/resource/comments/R_SO_4_" + song_id + "/?csrf_token="
+        try:
+            for i in range(0, 1):
+                if i == 0:
+                    first_param = b"{rid:\"\", offset:\"" + str(i * 20).encode(
+                        'utf-8') + b"\", total:\"true\", limit:\"20\", csrf_token:\"\"}"
+                else:
+                    first_param = b"{rid:\"\", offset:\"" + str(i * 20).encode(
+                        'utf-8') + b"\", total:\"false\", limit:\"20\", csrf_token:\"\"}"
+                data = {
+                    "params": aesEncrypt(aesEncrypt(first_param, forth_param), second_key),
+                    "encSecKey": get_encSecKey()
+                }
+                res = requests.post(url, headers=headers, data=data).json()
+                c_list = []
+                for j in range(0, 15):
+                    data = res['hotComments'][j]
+                    c_list.append(data)
+                print(c_list)
+                # try:
+                #     mongo_collection.insert_many(c_list)
+                # except:
+                #     raise
+                time.sleep(random.randint(3, 6))
+                return c_list
+        except:
+            raise
+
+getHotComments(search_keyword("我和我的祖国"))
